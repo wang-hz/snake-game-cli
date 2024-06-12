@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "snake-game-cli"
+version = "0.1.0"
+authors = [
+  { name="Wang H.Z.", email="imwanghz@gmail.com" },
+]
+description = "Play snake game in CLI"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Unix",
+]
+
+[project.urls]
+Homepage = "https://github.com/wang-hz/snake-game-cli"
+
+[project.scripts]
+play-snake = "snake_game_cli:main"
