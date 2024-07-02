@@ -1,6 +1,5 @@
 import curses
 import random
-import time
 from curses import wrapper
 from datetime import datetime, timedelta
 from enum import Enum, auto
