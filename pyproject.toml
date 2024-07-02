@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snake-game-cli"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
   { name="Wang H.Z.", email="imwanghz@gmail.com" },
 ]
@@ -13,7 +13,10 @@ readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: Unix",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "windows-curses; sys_platform == 'win32'",
 ]
 
 [project.urls]
