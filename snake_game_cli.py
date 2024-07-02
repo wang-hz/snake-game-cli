@@ -2,6 +2,7 @@ import curses
 import random
 import time
 from curses import wrapper
+from datetime import datetime, timedelta
 from enum import Enum, auto
 
 
@@ -117,21 +118,25 @@ def run(stdscr):
     stdscr.clear()
     stdscr.nodelay(True)
     game = Game(curses.LINES - 1, curses.COLS - 1)
+    delta = timedelta(milliseconds=200)
+    prev = datetime.now() - delta
     while True:
-        stdscr.erase()
         ch = stdscr.getch()
         if ch == ord('q'):
             break
         else:
             game.handle_input(ch)
-        displays = game.displays
-        for i in range(len(displays)):
-            for j in range(len(displays[i])):
-                y, x = displays[i][j]
-                stdscr.addstr(y, x, '█', curses.color_pair(i + 1))
-        stdscr.refresh()
-        time.sleep(0.2)
-        game.update()
+        current = datetime.now()
+        if current - prev > delta:
+            prev = current
+            stdscr.erase()
+            displays = game.displays
+            for i in range(len(displays)):
+                for j in range(len(displays[i])):
+                    y, x = displays[i][j]
+                    stdscr.addstr(y, x, '█', curses.color_pair(i + 1))
+            stdscr.refresh()
+            game.update()
 
 
 def main():
