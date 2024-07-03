@@ -35,13 +35,13 @@ class Game:
         self.displays = self.get_displays()
 
     def handle_input(self, ch):
-        if ch == curses.KEY_UP:
+        if ch == curses.KEY_UP and self.direction != Direction.DOWN:
             self.direction = Direction.UP
-        elif ch == curses.KEY_DOWN:
+        elif ch == curses.KEY_DOWN and self.direction != Direction.UP:
             self.direction = Direction.DOWN
-        elif ch == curses.KEY_LEFT:
+        elif ch == curses.KEY_LEFT and self.direction != Direction.RIGHT:
             self.direction = Direction.LEFT
-        elif ch == curses.KEY_RIGHT:
+        elif ch == curses.KEY_RIGHT and self.direction != Direction.LEFT:
             self.direction = Direction.RIGHT
 
     def update(self):
