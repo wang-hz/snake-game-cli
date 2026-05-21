@@ -56,13 +56,22 @@ class Game:
 
     def handle_input(self, ch):
         if ch in (curses.KEY_UP, ord('w')) and self.direction != Direction.DOWN:
+            boosted = self.direction == Direction.UP
             self.direction = Direction.UP
-        elif ch in (curses.KEY_DOWN, ord('s')) and self.direction != Direction.UP:
+            return boosted
+        if ch in (curses.KEY_DOWN, ord('s')) and self.direction != Direction.UP:
+            boosted = self.direction == Direction.DOWN
             self.direction = Direction.DOWN
-        elif ch in (curses.KEY_LEFT, ord('a')) and self.direction != Direction.RIGHT:
+            return boosted
+        if ch in (curses.KEY_LEFT, ord('a')) and self.direction != Direction.RIGHT:
+            boosted = self.direction == Direction.LEFT
             self.direction = Direction.LEFT
-        elif ch in (curses.KEY_RIGHT, ord('d')) and self.direction != Direction.LEFT:
+            return boosted
+        if ch in (curses.KEY_RIGHT, ord('d')) and self.direction != Direction.LEFT:
+            boosted = self.direction == Direction.RIGHT
             self.direction = Direction.RIGHT
+            return boosted
+        return False
 
     def update(self):
         if self.game_over:
@@ -179,8 +188,7 @@ def run(stdscr):
     stdscr.nodelay(True)
     game = Game(curses.LINES - 1, curses.COLS - 1)
     paused = False
-    delta = 0.2
-    prev = time.monotonic() - delta
+    prev = time.monotonic() - 0.2
     while True:
         ch = stdscr.getch()
         if ch == ord('q'):
@@ -188,11 +196,13 @@ def run(stdscr):
         elif ch == ord('r') and game.game_over:
             game = Game(curses.LINES - 1, curses.COLS - 1)
             paused = False
-            prev = time.monotonic() - delta
+            prev = time.monotonic() - 0.2
         elif ch == ord('p') and not game.game_over:
             paused = not paused
         elif not game.game_over and not paused:
-            game.handle_input(ch)
+            if game.handle_input(ch):
+                prev = time.monotonic() - delta
+        delta = max(0.08, 0.2 - game.score * 0.005)
         current = time.monotonic()
         if current - prev > delta:
             prev = current
