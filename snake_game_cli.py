@@ -57,21 +57,17 @@ class Game:
 
     def handle_input(self, ch):
         if ch in (curses.KEY_UP, ord('w')) and self.direction != Direction.DOWN:
-            boosted = self.direction == Direction.UP
             self.direction = Direction.UP
-            return boosted
+            return True
         if ch in (curses.KEY_DOWN, ord('s')) and self.direction != Direction.UP:
-            boosted = self.direction == Direction.DOWN
             self.direction = Direction.DOWN
-            return boosted
+            return True
         if ch in (curses.KEY_LEFT, ord('a')) and self.direction != Direction.RIGHT:
-            boosted = self.direction == Direction.LEFT
             self.direction = Direction.LEFT
-            return boosted
+            return True
         if ch in (curses.KEY_RIGHT, ord('d')) and self.direction != Direction.LEFT:
-            boosted = self.direction == Direction.RIGHT
             self.direction = Direction.RIGHT
-            return boosted
+            return True
         return False
 
     def update(self):
@@ -235,6 +231,7 @@ def run(stdscr):
             stdscr.refresh()
             if not paused:
                 game.update()
+        time.sleep(0.001)
 
 
 def main():
