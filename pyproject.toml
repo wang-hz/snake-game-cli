@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snake-game-cli"
-version = "0.1.2"
+version = "0.0.0"
 authors = [
   { name="Wang H.Z.", email="imwanghz@gmail.com" },
 ]
