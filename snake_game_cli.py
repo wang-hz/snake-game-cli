@@ -1,7 +1,8 @@
 import curses
 import random
+import time
+from collections import deque
 from curses import wrapper
-from datetime import datetime, timedelta
 from enum import Enum, auto
 
 
@@ -28,11 +29,29 @@ class Game:
         self.map_width = screen_width // self.width_scale
         self.screen_height = self.map_height * self.height_scale
         self.screen_width = self.map_width * self.width_scale
-        self.snake_body = [(self.map_height // 2, self.map_width // 2)]
+        start = (self.map_height // 2, self.map_width // 2)
+        self.snake_body = deque([start])
+        self.snake_body_set = {start}
         self.snake_length = 5
         self.direction = Direction.UP
         self.food = self.get_food()
+        self._border_display = self._compute_border()
         self.displays = self.get_displays()
+
+    def _compute_border(self):
+        border = []
+        for y in range(self.screen_height):
+            for x in range(self.screen_width):
+                if self.is_border(y // self.height_scale, x // self.width_scale):
+                    border.append((y, x))
+        return border
+
+    def _to_screen_cells(self, gy, gx):
+        return [
+            (gy * self.height_scale + dy, gx * self.width_scale + dx)
+            for dy in range(self.height_scale)
+            for dx in range(self.width_scale)
+        ]
 
     def handle_input(self, ch):
         if ch == curses.KEY_UP and self.direction != Direction.DOWN:
@@ -48,15 +67,17 @@ class Game:
         if self.game_over:
             return
         y, x = self.get_next_snake_head()
-        if self.is_border(y, x) or (y, x) in self.snake_body:
+        if self.is_border(y, x) or (y, x) in self.snake_body_set:
             self.game_over = True
             return
         if (y, x) == self.food:
             self.snake_length += 1
             self.food = self.get_food()
-        self.snake_body.insert(0, (y, x))
+        self.snake_body.appendleft((y, x))
+        self.snake_body_set.add((y, x))
         if self.snake_length < len(self.snake_body):
-            self.snake_body.pop()
+            removed = self.snake_body.pop()
+            self.snake_body_set.discard(removed)
         self.displays = self.get_displays()
 
     def get_next_snake_head(self):
@@ -75,7 +96,7 @@ class Game:
 
     def get_food(self):
         food = self.get_random_position()
-        while food in self.snake_body:
+        while food in self.snake_body_set:
             food = self.get_random_position()
         return food
 
@@ -83,24 +104,14 @@ class Game:
         return random.randrange(1, self.map_height - 1), random.randrange(1, self.map_width - 1)
 
     def get_displays(self):
-        screen = [[
-            self.element(height_index // self.height_scale, width_index // self.width_scale)
-            for width_index in range(self.screen_width)]
-            for height_index in range(self.screen_height)]
-        displays = []
-        for element in Element:
-            display = []
-            for height_index in range(len(screen)):
-                for width_index in range(len(screen[height_index])):
-                    if element == screen[height_index][width_index]:
-                        display.append((height_index, width_index))
-            displays.append(display)
-        return displays
+        snake = [cell for gy, gx in self.snake_body for cell in self._to_screen_cells(gy, gx)]
+        food = self._to_screen_cells(*self.food)
+        return [self._border_display, snake, food]
 
     def element(self, y, x):
         if self.is_border(y, x):
             return Element.BORDER
-        elif (y, x) in self.snake_body:
+        elif (y, x) in self.snake_body_set:
             return Element.SNAKE
         elif (y, x) == self.food:
             return Element.FOOD
@@ -117,15 +128,15 @@ def run(stdscr):
     stdscr.clear()
     stdscr.nodelay(True)
     game = Game(curses.LINES - 1, curses.COLS - 1)
-    delta = timedelta(milliseconds=200)
-    prev = datetime.now() - delta
+    delta = 0.2
+    prev = time.monotonic() - delta
     while True:
         ch = stdscr.getch()
         if ch == ord('q'):
             break
         else:
             game.handle_input(ch)
-        current = datetime.now()
+        current = time.monotonic()
         if current - prev > delta:
             prev = current
             stdscr.erase()
