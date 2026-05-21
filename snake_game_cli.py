@@ -121,14 +121,7 @@ class Game:
             return None
 
 
-def draw_game_over(stdscr, game):
-    lines = [
-        "GAME  OVER",
-        f"Score: {game.score}",
-        "",
-        "[R] Restart",
-        "[Q] Quit",
-    ]
+def draw_centered_box(stdscr, lines):
     width = max(len(line) for line in lines) + 6
     height = len(lines) + 4
     screen_h, screen_w = stdscr.getmaxyx()
@@ -146,15 +139,46 @@ def draw_game_over(stdscr, game):
         stdscr.addstr(y0 + 2 + i, x, line)
 
 
+def draw_start_screen(stdscr):
+    lines = [
+        "SNAKE  GAME",
+        "",
+        "↑ / W    Move Up",
+        "↓ / S    Move Down",
+        "← / A    Move Left",
+        "→ / D    Move Right",
+        "P        Pause / Resume",
+        "Q        Quit",
+        "",
+        "Press any key to start",
+    ]
+    stdscr.erase()
+    draw_centered_box(stdscr, lines)
+    stdscr.refresh()
+    stdscr.getch()
+
+
+def draw_game_over(stdscr, game):
+    lines = [
+        "GAME  OVER",
+        f"Score: {game.score}",
+        "",
+        "[R] Restart",
+        "[Q] Quit",
+    ]
+    draw_centered_box(stdscr, lines)
+
+
 def run(stdscr):
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.curs_set(False)
-    stdscr.clear()
+    draw_start_screen(stdscr)
     stdscr.nodelay(True)
     game = Game(curses.LINES - 1, curses.COLS - 1)
+    paused = False
     delta = 0.2
     prev = time.monotonic() - delta
     while True:
@@ -163,8 +187,11 @@ def run(stdscr):
             break
         elif ch == ord('r') and game.game_over:
             game = Game(curses.LINES - 1, curses.COLS - 1)
+            paused = False
             prev = time.monotonic() - delta
-        elif not game.game_over:
+        elif ch == ord('p') and not game.game_over:
+            paused = not paused
+        elif not game.game_over and not paused:
             game.handle_input(ch)
         current = time.monotonic()
         if current - prev > delta:
@@ -176,10 +203,13 @@ def run(stdscr):
                     y, x = displays[i][j]
                     stdscr.addstr(y, x, '█', curses.color_pair(i + 1))
             stdscr.addstr(0, 2, f' Score: {game.score} ')
+            if paused:
+                stdscr.addstr(0, game.screen_width - 11, ' [ PAUSED ] ')
             if game.game_over:
                 draw_game_over(stdscr, game)
             stdscr.refresh()
-            game.update()
+            if not paused:
+                game.update()
 
 
 def main():
