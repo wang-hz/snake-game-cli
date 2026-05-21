@@ -35,6 +35,7 @@ class Game:
         self.snake_length = 5
         self.direction = Direction.UP
         self.score = 0
+        self.game_won = False
         self.food = self.get_food()
         self._border_display = self._compute_border()
         self.displays = self.get_displays()
@@ -84,6 +85,9 @@ class Game:
             self.snake_length += 1
             self.score += 1
             self.food = self.get_food()
+            if self.food is None:
+                self.game_won = True
+                self.game_over = True
         self.snake_body.appendleft((y, x))
         self.snake_body_set.add((y, x))
         if self.snake_length < len(self.snake_body):
@@ -106,17 +110,15 @@ class Game:
         return y in (0, self.map_height - 1) or x in (0, self.map_width - 1)
 
     def get_food(self):
-        food = self.get_random_position()
-        while food in self.snake_body_set:
-            food = self.get_random_position()
-        return food
-
-    def get_random_position(self):
-        return random.randrange(1, self.map_height - 1), random.randrange(1, self.map_width - 1)
+        available = (
+            {(y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)}
+            - self.snake_body_set
+        )
+        return random.choice(tuple(available)) if available else None
 
     def get_displays(self):
         snake = [cell for gy, gx in self.snake_body for cell in self._to_screen_cells(gy, gx)]
-        food = self._to_screen_cells(*self.food)
+        food = self._to_screen_cells(*self.food) if self.food else []
         return [self._border_display, snake, food]
 
     def element(self, y, x):
@@ -167,6 +169,17 @@ def draw_start_screen(stdscr):
     stdscr.getch()
 
 
+def draw_win_screen(stdscr, game):
+    lines = [
+        "YOU  WIN!",
+        f"Score: {game.score}",
+        "",
+        "[R] Play Again",
+        "[Q] Quit",
+    ]
+    draw_centered_box(stdscr, lines)
+
+
 def draw_game_over(stdscr, game):
     lines = [
         "GAME  OVER",
@@ -215,7 +228,9 @@ def run(stdscr):
             stdscr.addstr(0, 2, f' Score: {game.score} ')
             if paused:
                 stdscr.addstr(0, game.screen_width - 11, ' [ PAUSED ] ')
-            if game.game_over:
+            if game.game_won:
+                draw_win_screen(stdscr, game)
+            elif game.game_over:
                 draw_game_over(stdscr, game)
             stdscr.refresh()
             if not paused:
