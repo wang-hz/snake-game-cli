@@ -34,6 +34,7 @@ class Game:
         self.snake_body_set = {start}
         self.snake_length = 5
         self.direction = Direction.UP
+        self.score = 0
         self.food = self.get_food()
         self._border_display = self._compute_border()
         self.displays = self.get_displays()
@@ -72,6 +73,7 @@ class Game:
             return
         if (y, x) == self.food:
             self.snake_length += 1
+            self.score += 1
             self.food = self.get_food()
         self.snake_body.appendleft((y, x))
         self.snake_body_set.add((y, x))
@@ -119,6 +121,31 @@ class Game:
             return None
 
 
+def draw_game_over(stdscr, game):
+    lines = [
+        "GAME  OVER",
+        f"Score: {game.score}",
+        "",
+        "[R] Restart",
+        "[Q] Quit",
+    ]
+    width = max(len(line) for line in lines) + 6
+    height = len(lines) + 4
+    screen_h, screen_w = stdscr.getmaxyx()
+    y0 = (screen_h - height) // 2
+    x0 = (screen_w - width) // 2
+    stdscr.addstr(y0, x0, '┌' + '─' * (width - 2) + '┐')
+    for i in range(1, height - 1):
+        stdscr.addstr(y0 + i, x0, '│' + ' ' * (width - 2) + '│')
+    try:
+        stdscr.addstr(y0 + height - 1, x0, '└' + '─' * (width - 2) + '┘')
+    except curses.error:
+        pass
+    for i, line in enumerate(lines):
+        x = x0 + (width - len(line)) // 2
+        stdscr.addstr(y0 + 2 + i, x, line)
+
+
 def run(stdscr):
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -134,7 +161,10 @@ def run(stdscr):
         ch = stdscr.getch()
         if ch == ord('q'):
             break
-        else:
+        elif ch == ord('r') and game.game_over:
+            game = Game(curses.LINES - 1, curses.COLS - 1)
+            prev = time.monotonic() - delta
+        elif not game.game_over:
             game.handle_input(ch)
         current = time.monotonic()
         if current - prev > delta:
@@ -145,6 +175,9 @@ def run(stdscr):
                 for j in range(len(displays[i])):
                     y, x = displays[i][j]
                     stdscr.addstr(y, x, '█', curses.color_pair(i + 1))
+            stdscr.addstr(0, 2, f' Score: {game.score} ')
+            if game.game_over:
+                draw_game_over(stdscr, game)
             stdscr.refresh()
             game.update()
 
