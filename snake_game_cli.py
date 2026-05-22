@@ -33,6 +33,7 @@ class Game:
         self.snake_body_set = {start}
         self.snake_length = 5
         self.direction = Direction.UP
+        self.next_direction = None
         self.score = 0
         self.game_won = False
         self._available = (
@@ -59,22 +60,25 @@ class Game:
 
     def handle_input(self, ch):
         if ch in (curses.KEY_UP, ord('w'), ord('W')) and self.direction != Direction.DOWN:
-            self.direction = Direction.UP
+            self.next_direction = Direction.UP
             return True
         if ch in (curses.KEY_DOWN, ord('s'), ord('S')) and self.direction != Direction.UP:
-            self.direction = Direction.DOWN
+            self.next_direction = Direction.DOWN
             return True
         if ch in (curses.KEY_LEFT, ord('a'), ord('A')) and self.direction != Direction.RIGHT:
-            self.direction = Direction.LEFT
+            self.next_direction = Direction.LEFT
             return True
         if ch in (curses.KEY_RIGHT, ord('d'), ord('D')) and self.direction != Direction.LEFT:
-            self.direction = Direction.RIGHT
+            self.next_direction = Direction.RIGHT
             return True
         return False
 
     def update(self):
         if self.game_over:
             return
+        if self.next_direction is not None:
+            self.direction = self.next_direction
+            self.next_direction = None
         y, x = self.get_next_snake_head()
         if self.is_border(y, x) or (y, x) in self.snake_body_set:
             self.game_over = True
