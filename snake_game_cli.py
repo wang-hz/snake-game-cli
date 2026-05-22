@@ -13,11 +13,6 @@ class Direction(Enum):
     RIGHT = auto()
 
 
-class Element(Enum):
-    BORDER = auto()
-    SNAKE = auto()
-    FOOD = auto()
-
 
 class Game:
     def __init__(self, screen_height, screen_width):
@@ -38,7 +33,6 @@ class Game:
         self.game_won = False
         self.food = self.get_food()
         self._border_display = self._compute_border()
-        self.displays = self.get_displays()
 
     def _compute_border(self):
         border = []
@@ -89,7 +83,6 @@ class Game:
         if self.snake_length < len(self.snake_body):
             removed = self.snake_body.pop()
             self.snake_body_set.discard(removed)
-        self.displays = self.get_displays()
 
     def get_next_snake_head(self):
         y, x = self.snake_body[0]
@@ -117,16 +110,6 @@ class Game:
         body = [cell for gy, gx in list(self.snake_body)[1:] for cell in self._to_screen_cells(gy, gx)]
         food = self._to_screen_cells(*self.food) if self.food else []
         return [self._border_display, body, food, head]
-
-    def element(self, y, x):
-        if self.is_border(y, x):
-            return Element.BORDER
-        elif (y, x) in self.snake_body_set:
-            return Element.SNAKE
-        elif (y, x) == self.food:
-            return Element.FOOD
-        else:
-            return None
 
 
 def draw_centered_box(stdscr, lines):
@@ -226,10 +209,8 @@ def run(stdscr):
         if current - prev >= delta:
             prev = current
             stdscr.erase()
-            displays = game.displays
-            for i in range(len(displays)):
-                for j in range(len(displays[i])):
-                    y, x = displays[i][j]
+            for i, display in enumerate(game.get_displays()):
+                for y, x in display:
                     stdscr.addstr(y, x, '█', curses.color_pair(i + 1))
             stdscr.addstr(0, 2, f' Score: {game.score} ')
             if paused:
