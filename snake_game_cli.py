@@ -5,13 +5,17 @@ from collections import deque
 from curses import wrapper
 from enum import Enum, auto
 
+TICK_BASE = 0.2
+TICK_MIN = 0.08
+TICK_ACCEL = 0.005
+PAUSE_POLL_MS = 100
+
 
 class Direction(Enum):
     UP = auto()
     DOWN = auto()
     LEFT = auto()
     RIGHT = auto()
-
 
 
 class Game:
@@ -31,7 +35,11 @@ class Game:
         self.direction = Direction.UP
         self.score = 0
         self.game_won = False
-        self.food = self.get_food()
+        self._available = (
+            {(y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)}
+            - self.snake_body_set
+        )
+        self.food = self._pick_food()
         self._border_display = self._compute_border()
 
     def _compute_border(self):
@@ -74,15 +82,17 @@ class Game:
         if (y, x) == self.food:
             self.snake_length += 1
             self.score += 1
-            self.food = self.get_food()
+            self.food = self._pick_food()
             if self.food is None:
                 self.game_won = True
                 self.game_over = True
         self.snake_body.appendleft((y, x))
         self.snake_body_set.add((y, x))
+        self._available.discard((y, x))
         if self.snake_length < len(self.snake_body):
             removed = self.snake_body.pop()
             self.snake_body_set.discard(removed)
+            self._available.add(removed)
 
     def get_next_snake_head(self):
         y, x = self.snake_body[0]
@@ -98,12 +108,8 @@ class Game:
     def is_border(self, y, x):
         return y in (0, self.map_height - 1) or x in (0, self.map_width - 1)
 
-    def get_food(self):
-        available = (
-            {(y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)}
-            - self.snake_body_set
-        )
-        return random.choice(tuple(available)) if available else None
+    def _pick_food(self):
+        return random.choice(tuple(self._available)) if self._available else None
 
     def get_displays(self):
         head = self._to_screen_cells(*self.snake_body[0])
@@ -171,6 +177,26 @@ def draw_game_over(stdscr, game):
     draw_centered_box(stdscr, lines)
 
 
+def _tick_interval(score):
+    return max(TICK_MIN, TICK_BASE - score * TICK_ACCEL)
+
+
+def _draw_frame(stdscr, game, paused):
+    stdscr.erase()
+    stdscr.addstr(0, 2, f' Score: {game.score} ')
+    if paused:
+        label = ' [ PAUSED ] '
+        stdscr.addstr(0, game.screen_width - len(label), label)
+    for i, display in enumerate(game.get_displays()):
+        for y, x in display:
+            stdscr.addstr(y + 1, x, '█', curses.color_pair(i + 1))
+    if game.game_won:
+        draw_win_screen(stdscr, game)
+    elif game.game_over:
+        draw_game_over(stdscr, game)
+    stdscr.refresh()
+
+
 def run(stdscr):
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -181,11 +207,11 @@ def run(stdscr):
     draw_start_screen(stdscr)
     game = Game(curses.LINES - 2, curses.COLS - 1)
     paused = False
-    prev = time.monotonic() - 0.2
+    prev = time.monotonic() - TICK_BASE
     while True:
-        delta = max(0.08, 0.2 - game.score * 0.005)
+        delta = _tick_interval(game.score)
         if game.game_over or paused:
-            stdscr.timeout(100)
+            stdscr.timeout(PAUSE_POLL_MS)
         else:
             stdscr.timeout(int(max(0, delta - (time.monotonic() - prev)) * 1000))
         ch = stdscr.getch()
@@ -208,18 +234,7 @@ def run(stdscr):
         current = time.monotonic()
         if current - prev >= delta:
             prev = current
-            stdscr.erase()
-            stdscr.addstr(0, 2, f' Score: {game.score} ')
-            if paused:
-                stdscr.addstr(0, game.screen_width - 11, ' [ PAUSED ] ')
-            for i, display in enumerate(game.get_displays()):
-                for y, x in display:
-                    stdscr.addstr(y + 1, x, '█', curses.color_pair(i + 1))
-            if game.game_won:
-                draw_win_screen(stdscr, game)
-            elif game.game_over:
-                draw_game_over(stdscr, game)
-            stdscr.refresh()
+            _draw_frame(stdscr, game, paused)
             if not paused:
                 game.update()
 
