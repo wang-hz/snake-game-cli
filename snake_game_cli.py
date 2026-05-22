@@ -113,9 +113,10 @@ class Game:
         return random.choice(tuple(available)) if available else None
 
     def get_displays(self):
-        snake = [cell for gy, gx in self.snake_body for cell in self._to_screen_cells(gy, gx)]
+        head = self._to_screen_cells(*self.snake_body[0])
+        body = [cell for gy, gx in list(self.snake_body)[1:] for cell in self._to_screen_cells(gy, gx)]
         food = self._to_screen_cells(*self.food) if self.food else []
-        return [self._border_display, snake, food]
+        return [self._border_display, body, food, head]
 
     def element(self, y, x):
         if self.is_border(y, x):
@@ -192,6 +193,7 @@ def run(stdscr):
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.curs_set(False)
     draw_start_screen(stdscr)
     stdscr.nodelay(True)
@@ -208,6 +210,11 @@ def run(stdscr):
             prev = time.monotonic() - 0.2
         elif ch == ord('p') and not game.game_over:
             paused = not paused
+        elif ch == curses.KEY_RESIZE:
+            h, w = stdscr.getmaxyx()
+            game = Game(h - 1, w - 1)
+            paused = False
+            prev = time.monotonic() - 0.2
         delta = max(0.08, 0.2 - game.score * 0.005)
         if not game.game_over and not paused:
             if game.handle_input(ch):
