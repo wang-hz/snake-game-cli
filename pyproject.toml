@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "snake-game-cli"
-version = "0.0.0"
+dynamic = ["version"]
 authors = [
   { name="Wang H.Z.", email="imwanghz@gmail.com" },
 ]
@@ -24,3 +24,6 @@ Homepage = "https://github.com/wang-hz/snake-game-cli"
 
 [project.scripts]
 play-snake = "snake_game_cli:main"
+
+[tool.hatch.version]
+source = "vcs"

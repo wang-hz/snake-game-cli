@@ -208,10 +208,10 @@ def run(stdscr):
             prev = time.monotonic() - 0.2
         elif ch == ord('p') and not game.game_over:
             paused = not paused
-        elif not game.game_over and not paused:
+        delta = max(0.08, 0.2 - game.score * 0.005)
+        if not game.game_over and not paused:
             if game.handle_input(ch):
                 prev = time.monotonic() - delta
-        delta = max(0.08, 0.2 - game.score * 0.005)
         current = time.monotonic()
         if current - prev > delta:
             prev = current
