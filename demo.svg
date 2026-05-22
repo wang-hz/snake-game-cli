@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="748" height="514">
+  <rect width="748" height="514" rx="10" ry="10" fill="#2d2d2d"/>
+  <rect width="748" height="50" rx="10" ry="10" fill="#3c3c3c"/>
+  <rect y="46" width="748" height="4" fill="#3c3c3c"/>
+  <circle cx="26" cy="27" r="6" fill="#ff5f57"/>
+  <circle cx="44" cy="27" r="6" fill="#ffbd2e"/>
+  <circle cx="62" cy="27" r="6" fill="#28c840"/>
+  <text x="374" y="32" text-anchor="middle"
+        font-family="monospace" font-size="13" fill="#666666">snake-game-cli</text>
+  <rect x="14" y="50" width="720" height="450" fill="#0c0c0c"/>
+  <text x="34" y="64" font-family="monospace" font-size="14" fill="#e0e0e0"> Score: 10 </text>
+  <rect x="14" y="68" width="720" height="18" fill="#c0c0c0"/>
+  <rect x="14" y="482" width="720" height="18" fill="#c0c0c0"/>
+  <rect x="14" y="86" width="20" height="396" fill="#c0c0c0"/>
+  <rect x="714" y="86" width="20" height="396" fill="#c0c0c0"/>
+  <rect x="574" y="194" width="20" height="18" fill="#cd0000"/>
+  <rect x="474" y="248" width="20" height="18" fill="#00cdcd"/>
+  <rect x="454" y="248" width="20" height="18" fill="#00cdcd"/>
+  <rect x="434" y="248" width="20" height="18" fill="#00cdcd"/>
+  <rect x="414" y="248" width="20" height="18" fill="#00cdcd"/>
+  <rect x="394" y="248" width="20" height="18" fill="#00cdcd"/>
+  <rect x="374" y="248" width="20" height="18" fill="#00cdcd"/>
+  <rect x="374" y="266" width="20" height="18" fill="#00cdcd"/>
+  <rect x="374" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="394" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="414" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="434" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="454" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="474" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="494" y="284" width="20" height="18" fill="#00cdcd"/>
+  <rect x="494" y="302" width="20" height="18" fill="#00cdcd"/>
+  <rect x="494" y="320" width="20" height="18" fill="#00cdcd"/>
+  <rect x="494" y="248" width="20" height="18" fill="#00cd00"/>
+</svg>

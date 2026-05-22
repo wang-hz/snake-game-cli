@@ -1,6 +1,8 @@
 # snake-game-cli
 
-Play snake game in CLI.
+Play snake game in your terminal.
+
+![demo](demo.svg)
 
 ## Installation
 
@@ -13,3 +15,20 @@ pip install snake-game-cli
 ```shell
 play-snake
 ```
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `↑` / `W` | Move up |
+| `↓` / `S` | Move down |
+| `←` / `A` | Move left |
+| `→` / `D` | Move right |
+| `P` | Pause / Resume |
+| `Q` | Quit |
+
+## Features
+
+- Snake speeds up as your score increases
+- Pressing a direction key triggers an immediate move
+- Terminal resize is handled gracefully
