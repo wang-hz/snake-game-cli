@@ -196,31 +196,34 @@ def run(stdscr):
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.curs_set(False)
     draw_start_screen(stdscr)
-    stdscr.nodelay(True)
     game = Game(curses.LINES - 1, curses.COLS - 1)
     paused = False
     prev = time.monotonic() - 0.2
     while True:
+        delta = max(0.08, 0.2 - game.score * 0.005)
+        if game.game_over or paused:
+            stdscr.timeout(100)
+        else:
+            stdscr.timeout(int(max(0, delta - (time.monotonic() - prev)) * 1000))
         ch = stdscr.getch()
         if ch == ord('q'):
             break
         elif ch == ord('r') and game.game_over:
             game = Game(curses.LINES - 1, curses.COLS - 1)
             paused = False
-            prev = time.monotonic() - 0.2
+            prev = time.monotonic() - delta
         elif ch == ord('p') and not game.game_over:
             paused = not paused
         elif ch == curses.KEY_RESIZE:
             h, w = stdscr.getmaxyx()
             game = Game(h - 1, w - 1)
             paused = False
-            prev = time.monotonic() - 0.2
-        delta = max(0.08, 0.2 - game.score * 0.005)
+            prev = time.monotonic() - delta
         if not game.game_over and not paused:
             if game.handle_input(ch):
                 prev = time.monotonic() - delta
         current = time.monotonic()
-        if current - prev > delta:
+        if current - prev >= delta:
             prev = current
             stdscr.erase()
             displays = game.displays
@@ -238,7 +241,6 @@ def run(stdscr):
             stdscr.refresh()
             if not paused:
                 game.update()
-        time.sleep(0.001)
 
 
 def main():
