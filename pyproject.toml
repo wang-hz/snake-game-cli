@@ -8,7 +8,7 @@ dynamic = ["version"]
 authors = [
   { name="Wang H.Z.", email="imwanghz@gmail.com" },
 ]
-description = "Play snake game in CLI"
+description = "Play snake game in your terminal."
 readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
