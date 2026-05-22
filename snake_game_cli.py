@@ -179,7 +179,7 @@ def run(stdscr):
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.curs_set(False)
     draw_start_screen(stdscr)
-    game = Game(curses.LINES - 1, curses.COLS - 1)
+    game = Game(curses.LINES - 2, curses.COLS - 1)
     paused = False
     prev = time.monotonic() - 0.2
     while True:
@@ -192,14 +192,14 @@ def run(stdscr):
         if ch == ord('q'):
             break
         elif ch == ord('r') and game.game_over:
-            game = Game(curses.LINES - 1, curses.COLS - 1)
+            game = Game(curses.LINES - 2, curses.COLS - 1)
             paused = False
             prev = time.monotonic() - delta
         elif ch == ord('p') and not game.game_over:
             paused = not paused
         elif ch == curses.KEY_RESIZE:
             h, w = stdscr.getmaxyx()
-            game = Game(h - 1, w - 1)
+            game = Game(h - 2, w - 1)
             paused = False
             prev = time.monotonic() - delta
         if not game.game_over and not paused:
@@ -209,12 +209,12 @@ def run(stdscr):
         if current - prev >= delta:
             prev = current
             stdscr.erase()
-            for i, display in enumerate(game.get_displays()):
-                for y, x in display:
-                    stdscr.addstr(y, x, '█', curses.color_pair(i + 1))
             stdscr.addstr(0, 2, f' Score: {game.score} ')
             if paused:
                 stdscr.addstr(0, game.screen_width - 11, ' [ PAUSED ] ')
+            for i, display in enumerate(game.get_displays()):
+                for y, x in display:
+                    stdscr.addstr(y + 1, x, '█', curses.color_pair(i + 1))
             if game.game_won:
                 draw_win_screen(stdscr, game)
             elif game.game_over:
