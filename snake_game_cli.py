@@ -58,16 +58,16 @@ class Game:
         ]
 
     def handle_input(self, ch):
-        if ch in (curses.KEY_UP, ord('w')) and self.direction != Direction.DOWN:
+        if ch in (curses.KEY_UP, ord('w'), ord('W')) and self.direction != Direction.DOWN:
             self.direction = Direction.UP
             return True
-        if ch in (curses.KEY_DOWN, ord('s')) and self.direction != Direction.UP:
+        if ch in (curses.KEY_DOWN, ord('s'), ord('S')) and self.direction != Direction.UP:
             self.direction = Direction.DOWN
             return True
-        if ch in (curses.KEY_LEFT, ord('a')) and self.direction != Direction.RIGHT:
+        if ch in (curses.KEY_LEFT, ord('a'), ord('A')) and self.direction != Direction.RIGHT:
             self.direction = Direction.LEFT
             return True
-        if ch in (curses.KEY_RIGHT, ord('d')) and self.direction != Direction.LEFT:
+        if ch in (curses.KEY_RIGHT, ord('d'), ord('D')) and self.direction != Direction.LEFT:
             self.direction = Direction.RIGHT
             return True
         return False
@@ -215,13 +215,13 @@ def run(stdscr):
         else:
             stdscr.timeout(int(max(0, delta - (time.monotonic() - prev)) * 1000))
         ch = stdscr.getch()
-        if ch == ord('q'):
+        if ch in (ord('q'), ord('Q')):
             break
-        elif ch == ord('r') and game.game_over:
+        elif ch in (ord('r'), ord('R')) and game.game_over:
             game = Game(curses.LINES - 2, curses.COLS - 1)
             paused = False
             prev = time.monotonic() - delta
-        elif ch == ord('p') and not game.game_over:
+        elif ch in (ord('p'), ord('P')) and not game.game_over:
             paused = not paused
         elif ch == curses.KEY_RESIZE:
             h, w = stdscr.getmaxyx()
