@@ -2,7 +2,7 @@
 
 Play snake game in your terminal.
 
-![demo](demo.svg)
+![demo](https://raw.githubusercontent.com/wang-hz/snake-game-cli/main/demo.svg)
 
 ## Installation
 
