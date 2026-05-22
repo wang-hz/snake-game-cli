@@ -1,14 +1,18 @@
+import argparse
 import curses
 import random
 import time
 from collections import deque
 from curses import wrapper
 from enum import Enum, auto
+from importlib.metadata import PackageNotFoundError, version
 
 TICK_BASE = 0.2
 TICK_MIN = 0.08
 TICK_ACCEL = 0.005
 PAUSE_POLL_MS = 100
+MIN_LINES = 16
+MIN_COLS = 30
 
 _Pos = tuple[int, int]
 
@@ -133,6 +137,15 @@ class Game:
         return [self._border_display, body, food, head]
 
 
+def _draw_too_small(stdscr: curses.window) -> None:
+    stdscr.erase()
+    h, w = stdscr.getmaxyx()
+    msg = f'Terminal too small ({w}x{h}). Resize to at least {MIN_COLS}x{MIN_LINES}.'
+    if h >= 1 and w >= len(msg):
+        stdscr.addstr(h // 2, (w - len(msg)) // 2, msg)
+    stdscr.refresh()
+
+
 def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
     width = max(len(line) for line in lines) + 6
     height = len(lines) + 4
@@ -212,6 +225,19 @@ def _draw_frame(stdscr: curses.window, game: Game, paused: bool) -> None:
     stdscr.refresh()
 
 
+def _wait_for_resize(stdscr: curses.window) -> bool:
+    """Show a 'terminal too small' message until the window is large enough.
+    Returns True when ready to proceed, False if the user presses Q to quit."""
+    while True:
+        h, w = stdscr.getmaxyx()
+        if h >= MIN_LINES and w >= MIN_COLS:
+            return True
+        _draw_too_small(stdscr)
+        stdscr.timeout(-1)
+        if _normalize_key(stdscr.getch()) == ord('q'):
+            return False
+
+
 def run(stdscr: curses.window) -> None:
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -219,8 +245,11 @@ def run(stdscr: curses.window) -> None:
     curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.curs_set(False)
+    if not _wait_for_resize(stdscr):
+        return
     draw_start_screen(stdscr)
-    game = Game(curses.LINES - 2, curses.COLS - 1)
+    h, w = stdscr.getmaxyx()
+    game = Game(h - 2, w - 1)
     paused = False
     prev = time.monotonic() - TICK_BASE
     while True:
@@ -233,12 +262,15 @@ def run(stdscr: curses.window) -> None:
         if ch == ord('q'):
             break
         elif ch == ord('r') and game.game_over:
-            game = Game(curses.LINES - 2, curses.COLS - 1)
+            h, w = stdscr.getmaxyx()
+            game = Game(h - 2, w - 1)
             paused = False
             prev = time.monotonic() - delta
         elif ch == ord('p') and not game.game_over:
             paused = not paused
         elif ch == curses.KEY_RESIZE:
+            if not _wait_for_resize(stdscr):
+                break
             h, w = stdscr.getmaxyx()
             game = Game(h - 2, w - 1)
             paused = False
@@ -254,7 +286,17 @@ def run(stdscr: curses.window) -> None:
                 game.update()
 
 
+def _get_version() -> str:
+    try:
+        return version('snake-game-cli')
+    except PackageNotFoundError:
+        return 'unknown'
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(prog='play-snake', description='Play snake in your terminal.')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {_get_version()}')
+    parser.parse_args()
     wrapper(run)
 
 
