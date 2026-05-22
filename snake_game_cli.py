@@ -10,6 +10,8 @@ TICK_MIN = 0.08
 TICK_ACCEL = 0.005
 PAUSE_POLL_MS = 100
 
+_Pos = tuple[int, int]
+
 
 class Direction(Enum):
     UP = auto()
@@ -18,9 +20,16 @@ class Direction(Enum):
     RIGHT = auto()
 
 
+_DIRECTION_DELTA: dict[Direction, _Pos] = {
+    Direction.UP: (-1, 0),
+    Direction.DOWN: (1, 0),
+    Direction.LEFT: (0, -1),
+    Direction.RIGHT: (0, 1),
+}
+
+
 class Game:
-    def __init__(self, screen_height, screen_width):
-        random.seed()
+    def __init__(self, screen_height: int, screen_width: int) -> None:
         self.game_over = False
         self.height_scale = 1
         self.width_scale = 2
@@ -28,22 +37,22 @@ class Game:
         self.map_width = screen_width // self.width_scale
         self.screen_height = self.map_height * self.height_scale
         self.screen_width = self.map_width * self.width_scale
-        start = (self.map_height // 2, self.map_width // 2)
-        self.snake_body = deque([start])
-        self.snake_body_set = {start}
+        start: _Pos = (self.map_height // 2, self.map_width // 2)
+        self.snake_body: deque[_Pos] = deque([start])
+        self.snake_body_set: set[_Pos] = {start}
         self.snake_length = 5
         self.direction = Direction.UP
-        self.next_direction = None
+        self.next_direction: Direction | None = None
         self.score = 0
         self.game_won = False
-        self._available = (
+        self._available: set[_Pos] = (
             {(y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)}
             - self.snake_body_set
         )
-        self.food = self._pick_food()
+        self.food: _Pos | None = self._pick_food()
         self._border_display = self._compute_border()
 
-    def _compute_border(self):
+    def _compute_border(self) -> list[_Pos]:
         border = []
         for y in range(self.screen_height):
             for x in range(self.screen_width):
@@ -51,14 +60,14 @@ class Game:
                     border.append((y, x))
         return border
 
-    def _to_screen_cells(self, gy, gx):
+    def _to_screen_cells(self, gy: int, gx: int) -> list[_Pos]:
         return [
             (gy * self.height_scale + dy, gx * self.width_scale + dx)
             for dy in range(self.height_scale)
             for dx in range(self.width_scale)
         ]
 
-    def handle_input(self, ch):
+    def handle_input(self, ch: int) -> bool:
         if ch in (curses.KEY_UP, ord('w'), ord('W')) and self.direction != Direction.DOWN:
             self.next_direction = Direction.UP
             return True
@@ -73,7 +82,7 @@ class Game:
             return True
         return False
 
-    def update(self):
+    def update(self) -> None:
         if self.game_over:
             return
         if self.next_direction is not None:
@@ -98,31 +107,25 @@ class Game:
             self.snake_body_set.discard(removed)
             self._available.add(removed)
 
-    def get_next_snake_head(self):
+    def get_next_snake_head(self) -> _Pos:
         y, x = self.snake_body[0]
-        if self.direction == Direction.UP:
-            return y - 1, x
-        elif self.direction == Direction.DOWN:
-            return y + 1, x
-        elif self.direction == Direction.LEFT:
-            return y, x - 1
-        elif self.direction == Direction.RIGHT:
-            return y, x + 1
+        dy, dx = _DIRECTION_DELTA[self.direction]
+        return y + dy, x + dx
 
-    def is_border(self, y, x):
+    def is_border(self, y: int, x: int) -> bool:
         return y in (0, self.map_height - 1) or x in (0, self.map_width - 1)
 
-    def _pick_food(self):
+    def _pick_food(self) -> _Pos | None:
         return random.choice(tuple(self._available)) if self._available else None
 
-    def get_displays(self):
+    def get_displays(self) -> list[list[_Pos]]:
         head = self._to_screen_cells(*self.snake_body[0])
         body = [cell for gy, gx in list(self.snake_body)[1:] for cell in self._to_screen_cells(gy, gx)]
         food = self._to_screen_cells(*self.food) if self.food else []
         return [self._border_display, body, food, head]
 
 
-def draw_centered_box(stdscr, lines):
+def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
     width = max(len(line) for line in lines) + 6
     height = len(lines) + 4
     screen_h, screen_w = stdscr.getmaxyx()
@@ -140,7 +143,7 @@ def draw_centered_box(stdscr, lines):
         stdscr.addstr(y0 + 2 + i, x, line)
 
 
-def draw_start_screen(stdscr):
+def draw_start_screen(stdscr: curses.window) -> None:
     lines = [
         "SNAKE  GAME",
         "",
@@ -159,7 +162,7 @@ def draw_start_screen(stdscr):
     stdscr.getch()
 
 
-def draw_win_screen(stdscr, game):
+def draw_win_screen(stdscr: curses.window, game: Game) -> None:
     lines = [
         "YOU  WIN!",
         f"Score: {game.score}",
@@ -170,7 +173,7 @@ def draw_win_screen(stdscr, game):
     draw_centered_box(stdscr, lines)
 
 
-def draw_game_over(stdscr, game):
+def draw_game_over(stdscr: curses.window, game: Game) -> None:
     lines = [
         "GAME  OVER",
         f"Score: {game.score}",
@@ -181,11 +184,11 @@ def draw_game_over(stdscr, game):
     draw_centered_box(stdscr, lines)
 
 
-def _tick_interval(score):
+def _tick_interval(score: int) -> float:
     return max(TICK_MIN, TICK_BASE - score * TICK_ACCEL)
 
 
-def _draw_frame(stdscr, game, paused):
+def _draw_frame(stdscr: curses.window, game: Game, paused: bool) -> None:
     stdscr.erase()
     stdscr.addstr(0, 2, f' Score: {game.score} ')
     if paused:
@@ -201,7 +204,7 @@ def _draw_frame(stdscr, game, paused):
     stdscr.refresh()
 
 
-def run(stdscr):
+def run(stdscr: curses.window) -> None:
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
@@ -243,7 +246,7 @@ def run(stdscr):
                 game.update()
 
 
-def main():
+def main() -> None:
     wrapper(run)
 
 

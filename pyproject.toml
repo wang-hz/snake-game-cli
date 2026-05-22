@@ -27,3 +27,6 @@ play-snake = "snake_game_cli:main"
 
 [tool.hatch.version]
 source = "vcs"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
