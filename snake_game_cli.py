@@ -209,15 +209,16 @@ def _tick_interval(score: int) -> float:
     return max(TICK_MIN, TICK_BASE - score * TICK_ACCEL)
 
 
-def _draw_frame(stdscr: curses.window, game: Game, paused: bool) -> None:
+def _draw_frame(stdscr: curses.window, game: Game, paused: bool, use_color: bool = True) -> None:
     stdscr.erase()
     stdscr.addstr(0, 2, f' Score: {game.score} ')
     if paused:
         label = ' [ PAUSED ] '
         stdscr.addstr(0, game.screen_width - len(label), label)
     for i, display in enumerate(game.get_displays()):
+        attr = curses.color_pair(i + 1) if use_color else curses.A_NORMAL
         for y, x in display:
-            stdscr.addstr(y + 1, x, '█', curses.color_pair(i + 1))
+            stdscr.addstr(y + 1, x, '█', attr)
     if game.game_won:
         draw_win_screen(stdscr, game)
     elif game.game_over:
@@ -239,11 +240,13 @@ def _wait_for_resize(stdscr: curses.window) -> bool:
 
 
 def run(stdscr: curses.window) -> None:
-    curses.start_color()
-    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
-    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    use_color = curses.has_colors()
+    if use_color:
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.curs_set(False)
     if not _wait_for_resize(stdscr):
         return
@@ -281,7 +284,7 @@ def run(stdscr: curses.window) -> None:
         current = time.monotonic()
         if current - prev >= delta:
             prev = current
-            _draw_frame(stdscr, game, paused)
+            _draw_frame(stdscr, game, paused, use_color)
             if not paused:
                 game.update()
 
