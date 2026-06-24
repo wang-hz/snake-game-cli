@@ -6,7 +6,9 @@ import sys
 import time
 from collections import deque
 from curses import wrapper
+from dataclasses import dataclass
 from enum import Enum, auto
+from functools import partial
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
@@ -18,6 +20,26 @@ MIN_LINES = 16
 MIN_COLS = 30
 
 _Pos = tuple[int, int]
+
+
+@dataclass(frozen=True)
+class Difficulty:
+    """A speed preset: starting tick, floor tick, and per-point acceleration."""
+
+    label: str
+    tick_base: float
+    tick_min: float
+    tick_accel: float
+
+
+# Ordered slowest -> fastest. 'Normal' mirrors the historical TICK_* constants.
+DIFFICULTIES: list[Difficulty] = [
+    Difficulty('Easy', 0.28, 0.12, 0.004),
+    Difficulty('Normal', TICK_BASE, TICK_MIN, TICK_ACCEL),
+    Difficulty('Hard', 0.12, 0.05, 0.006),
+]
+DIFFICULTY_NAMES: list[str] = [d.label.lower() for d in DIFFICULTIES]
+DEFAULT_DIFFICULTY_INDEX = DIFFICULTY_NAMES.index('normal')
 
 
 def _normalize_key(ch: int) -> int:
@@ -214,11 +236,14 @@ def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
         _safe_addstr(stdscr, y0 + 2 + i, x, line)
 
 
-def draw_start_screen(stdscr: curses.window, high_score: int = 0) -> None:
+def _start_screen_lines(high_score: int, difficulty_index: int) -> list[str]:
     lines = ['SNAKE  GAME', '']
     if high_score > 0:
         lines += [f'High Score: {high_score}', '']
+    label = DIFFICULTIES[difficulty_index].label
     lines += [
+        f'Difficulty:  ◄ {label} ►',
+        '',
         '↑ / W    Move Up',
         '↓ / S    Move Down',
         '← / A    Move Left',
@@ -226,12 +251,30 @@ def draw_start_screen(stdscr: curses.window, high_score: int = 0) -> None:
         'P        Pause / Resume',
         'Q        Quit',
         '',
-        'Press any key to start',
+        '← / →    Change difficulty',
+        'Enter    Start game',
     ]
-    stdscr.erase()
-    draw_centered_box(stdscr, lines)
-    stdscr.refresh()
-    stdscr.getch()
+    return lines
+
+
+def draw_start_screen(stdscr: curses.window, high_score: int, difficulty_index: int) -> int | None:
+    """Interactive start screen. Returns the chosen difficulty index, or None to quit."""
+    stdscr.timeout(-1)
+    while True:
+        stdscr.erase()
+        draw_centered_box(stdscr, _start_screen_lines(high_score, difficulty_index))
+        stdscr.refresh()
+        ch = _normalize_key(stdscr.getch())
+        if ch == ord('q'):
+            return None
+        if ch in (curses.KEY_LEFT, ord('a')):
+            difficulty_index = (difficulty_index - 1) % len(DIFFICULTIES)
+        elif ch in (curses.KEY_RIGHT, ord('d')):
+            difficulty_index = (difficulty_index + 1) % len(DIFFICULTIES)
+        elif ch in (curses.KEY_ENTER, ord('\n'), ord('\r'), ord(' ')):
+            return difficulty_index
+        elif ch == curses.KEY_RESIZE and not _wait_for_resize(stdscr):
+            return None
 
 
 def _score_lines(game: Game, high_score: int, new_high: bool) -> list[str]:
@@ -262,8 +305,9 @@ def draw_game_over(stdscr: curses.window, game: Game, high_score: int, new_high:
     draw_centered_box(stdscr, lines)
 
 
-def _tick_interval(score: int) -> float:
-    return max(TICK_MIN, TICK_BASE - score * TICK_ACCEL)
+def _tick_interval(score: int, difficulty: Difficulty | None = None) -> float:
+    d = difficulty if difficulty is not None else DIFFICULTIES[DEFAULT_DIFFICULTY_INDEX]
+    return max(d.tick_min, d.tick_base - score * d.tick_accel)
 
 
 def _draw_frame(
@@ -303,7 +347,7 @@ def _wait_for_resize(stdscr: curses.window) -> bool:
             return False
 
 
-def run(stdscr: curses.window) -> None:
+def run(stdscr: curses.window, difficulty_index: int = DEFAULT_DIFFICULTY_INDEX) -> None:
     use_color = curses.has_colors()
     if use_color:
         curses.start_color()
@@ -315,15 +359,18 @@ def run(stdscr: curses.window) -> None:
     if not _wait_for_resize(stdscr):
         return
     high_score = _load_high_score()
-    draw_start_screen(stdscr, high_score)
+    selected = draw_start_screen(stdscr, high_score, difficulty_index)
+    if selected is None:
+        return
+    difficulty = DIFFICULTIES[selected]
     h, w = stdscr.getmaxyx()
     game = Game(h - 2, w - 1)
     paused = False
     new_high = False
     recorded = False
-    prev = time.monotonic() - TICK_BASE
+    prev = time.monotonic() - difficulty.tick_base
     while True:
-        delta = _tick_interval(game.score)
+        delta = _tick_interval(game.score, difficulty)
         if game.game_over or paused:
             stdscr.timeout(PAUSE_POLL_MS)
         else:
@@ -376,8 +423,15 @@ def _get_version() -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(prog='play-snake', description='Play snake in your terminal.')
     parser.add_argument('--version', action='version', version=f'%(prog)s {_get_version()}')
-    parser.parse_args()
-    wrapper(run)
+    parser.add_argument(
+        '-d',
+        '--difficulty',
+        choices=DIFFICULTY_NAMES,
+        default=DIFFICULTY_NAMES[DEFAULT_DIFFICULTY_INDEX],
+        help='Starting difficulty (also selectable on the start screen).',
+    )
+    args = parser.parse_args()
+    wrapper(partial(run, difficulty_index=DIFFICULTY_NAMES.index(args.difficulty)))
 
 
 if __name__ == '__main__':

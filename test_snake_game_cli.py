@@ -5,9 +5,13 @@ import pytest
 
 import snake_game_cli
 from snake_game_cli import (
+    DEFAULT_DIFFICULTY_INDEX,
+    DIFFICULTIES,
+    DIFFICULTY_NAMES,
     TICK_ACCEL,
     TICK_BASE,
     TICK_MIN,
+    Difficulty,
     Direction,
     Game,
     _load_high_score,
@@ -55,6 +59,44 @@ def test_tick_interval_decreases_with_score():
 
 def test_tick_interval_floored_at_min():
     assert _tick_interval(10_000) == TICK_MIN
+
+
+def test_tick_interval_default_is_normal():
+    normal = DIFFICULTIES[DEFAULT_DIFFICULTY_INDEX]
+    assert _tick_interval(7) == _tick_interval(7, normal)
+
+
+# --- difficulty -------------------------------------------------------------
+
+
+def test_default_difficulty_is_normal():
+    assert DIFFICULTY_NAMES[DEFAULT_DIFFICULTY_INDEX] == 'normal'
+    # Normal mirrors the historical TICK_* constants.
+    normal = DIFFICULTIES[DEFAULT_DIFFICULTY_INDEX]
+    assert (normal.tick_base, normal.tick_min, normal.tick_accel) == (
+        TICK_BASE,
+        TICK_MIN,
+        TICK_ACCEL,
+    )
+
+
+def test_difficulty_names_match_labels_lowercased():
+    assert DIFFICULTY_NAMES == [d.label.lower() for d in DIFFICULTIES]
+    assert len(set(DIFFICULTY_NAMES)) == len(DIFFICULTY_NAMES)  # unique
+
+
+def test_difficulties_ordered_slow_to_fast():
+    # Earlier presets must be at least as slow at every score.
+    for slower, faster in zip(DIFFICULTIES, DIFFICULTIES[1:], strict=False):
+        for score in (0, 10, 100):
+            assert _tick_interval(score, slower) >= _tick_interval(score, faster)
+
+
+def test_tick_interval_uses_given_difficulty():
+    fast = Difficulty('Test', 0.1, 0.05, 0.01)
+    assert _tick_interval(0, fast) == pytest.approx(0.1)
+    assert _tick_interval(3, fast) == pytest.approx(0.1 - 3 * 0.01)
+    assert _tick_interval(10_000, fast) == pytest.approx(0.05)
 
 
 # --- Game construction ------------------------------------------------------
