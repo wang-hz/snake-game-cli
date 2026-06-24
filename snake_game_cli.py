@@ -351,10 +351,17 @@ def run(stdscr: curses.window, difficulty_index: int = DEFAULT_DIFFICULTY_INDEX)
     use_color = curses.has_colors()
     if use_color:
         curses.start_color()
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
-        curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        # Use the terminal's own background (-1) rather than a hardcoded black,
+        # so drawn cells match the erased empty cells on any color scheme.
+        try:
+            curses.use_default_colors()
+            bg = -1
+        except curses.error:
+            bg = curses.COLOR_BLACK
+        curses.init_pair(1, curses.COLOR_WHITE, bg)
+        curses.init_pair(2, curses.COLOR_CYAN, bg)
+        curses.init_pair(3, curses.COLOR_RED, bg)
+        curses.init_pair(4, curses.COLOR_GREEN, bg)
     curses.curs_set(False)
     if not _wait_for_resize(stdscr):
         return
