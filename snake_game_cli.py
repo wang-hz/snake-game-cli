@@ -159,6 +159,15 @@ def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
     width = max(len(line) for line in lines) + 6
     height = len(lines) + 4
     screen_h, screen_w = stdscr.getmaxyx()
+    if width > screen_w or height > screen_h:
+        # The box can't fit the terminal: drop the border and just center the
+        # text, clamped on-screen, so the key message stays readable instead of
+        # rendering a broken half-box.
+        y0 = max(0, (screen_h - len(lines)) // 2)
+        for i, line in enumerate(lines):
+            x = max(0, (screen_w - len(line)) // 2)
+            _safe_addstr(stdscr, y0 + i, x, line)
+        return
     y0 = (screen_h - height) // 2
     x0 = (screen_w - width) // 2
     _safe_addstr(stdscr, y0, x0, '┌' + '─' * (width - 2) + '┐')
