@@ -146,22 +146,28 @@ def _draw_too_small(stdscr: curses.window) -> None:
     stdscr.refresh()
 
 
+def _safe_addstr(stdscr: curses.window, y: int, x: int, text: str) -> None:
+    """addstr that ignores the curses.error raised when writing at or past the
+    screen edge (e.g. the bottom-right cell), so an oversized box never crashes."""
+    try:
+        stdscr.addstr(y, x, text)
+    except curses.error:
+        pass
+
+
 def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
     width = max(len(line) for line in lines) + 6
     height = len(lines) + 4
     screen_h, screen_w = stdscr.getmaxyx()
     y0 = (screen_h - height) // 2
     x0 = (screen_w - width) // 2
-    stdscr.addstr(y0, x0, '┌' + '─' * (width - 2) + '┐')
+    _safe_addstr(stdscr, y0, x0, '┌' + '─' * (width - 2) + '┐')
     for i in range(1, height - 1):
-        stdscr.addstr(y0 + i, x0, '│' + ' ' * (width - 2) + '│')
-    try:
-        stdscr.addstr(y0 + height - 1, x0, '└' + '─' * (width - 2) + '┘')
-    except curses.error:
-        pass
+        _safe_addstr(stdscr, y0 + i, x0, '│' + ' ' * (width - 2) + '│')
+    _safe_addstr(stdscr, y0 + height - 1, x0, '└' + '─' * (width - 2) + '┘')
     for i, line in enumerate(lines):
         x = x0 + (width - len(line)) // 2
-        stdscr.addstr(y0 + 2 + i, x, line)
+        _safe_addstr(stdscr, y0 + 2 + i, x, line)
 
 
 def draw_start_screen(stdscr: curses.window) -> None:
