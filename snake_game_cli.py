@@ -1,11 +1,14 @@
 import argparse
 import curses
+import os
 import random
+import sys
 import time
 from collections import deque
 from curses import wrapper
 from enum import Enum, auto
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 TICK_BASE = 0.2
 TICK_MIN = 0.08
@@ -138,6 +141,35 @@ class Game:
         return [self._border_display, body, food, head]
 
 
+def _high_score_path() -> Path:
+    """Cross-platform location for the persisted high score (no extra deps)."""
+    if sys.platform == 'win32':
+        base = os.environ.get('LOCALAPPDATA')
+        root = Path(base) if base else Path.home()
+    else:
+        base = os.environ.get('XDG_STATE_HOME')
+        root = Path(base) if base else Path.home() / '.local' / 'state'
+    return root / 'snake-game-cli' / 'highscore'
+
+
+def _load_high_score() -> int:
+    """Read the saved high score, returning 0 if missing or unreadable."""
+    try:
+        return max(0, int(_high_score_path().read_text().strip()))
+    except (OSError, ValueError):
+        return 0
+
+
+def _save_high_score(score: int) -> None:
+    """Persist the high score, silently ignoring any filesystem error."""
+    path = _high_score_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(str(score))
+    except OSError:
+        pass
+
+
 def _draw_too_small(stdscr: curses.window) -> None:
     stdscr.erase()
     h, w = stdscr.getmaxyx()
@@ -180,10 +212,11 @@ def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
         _safe_addstr(stdscr, y0 + 2 + i, x, line)
 
 
-def draw_start_screen(stdscr: curses.window) -> None:
-    lines = [
-        'SNAKE  GAME',
-        '',
+def draw_start_screen(stdscr: curses.window, high_score: int = 0) -> None:
+    lines = ['SNAKE  GAME', '']
+    if high_score > 0:
+        lines += [f'High Score: {high_score}', '']
+    lines += [
         '↑ / W    Move Up',
         '↓ / S    Move Down',
         '← / A    Move Left',
@@ -199,10 +232,16 @@ def draw_start_screen(stdscr: curses.window) -> None:
     stdscr.getch()
 
 
-def draw_win_screen(stdscr: curses.window, game: Game) -> None:
+def _score_lines(game: Game, high_score: int, new_high: bool) -> list[str]:
+    if new_high:
+        return [f'Score: {game.score}', 'New High Score!']
+    return [f'Score: {game.score}', f'High Score: {high_score}']
+
+
+def draw_win_screen(stdscr: curses.window, game: Game, high_score: int, new_high: bool) -> None:
     lines = [
         'YOU  WIN!',
-        f'Score: {game.score}',
+        *_score_lines(game, high_score, new_high),
         '',
         '[R] Play Again',
         '[Q] Quit',
@@ -210,10 +249,10 @@ def draw_win_screen(stdscr: curses.window, game: Game) -> None:
     draw_centered_box(stdscr, lines)
 
 
-def draw_game_over(stdscr: curses.window, game: Game) -> None:
+def draw_game_over(stdscr: curses.window, game: Game, high_score: int, new_high: bool) -> None:
     lines = [
         'GAME  OVER',
-        f'Score: {game.score}',
+        *_score_lines(game, high_score, new_high),
         '',
         '[R] Restart',
         '[Q] Quit',
@@ -225,9 +264,16 @@ def _tick_interval(score: int) -> float:
     return max(TICK_MIN, TICK_BASE - score * TICK_ACCEL)
 
 
-def _draw_frame(stdscr: curses.window, game: Game, paused: bool, use_color: bool = True) -> None:
+def _draw_frame(
+    stdscr: curses.window,
+    game: Game,
+    paused: bool,
+    high_score: int,
+    new_high: bool,
+    use_color: bool = True,
+) -> None:
     stdscr.erase()
-    stdscr.addstr(0, 2, f' Score: {game.score} ')
+    stdscr.addstr(0, 2, f' Score: {game.score}   High: {max(high_score, game.score)} ')
     if paused:
         label = ' [ PAUSED ] '
         stdscr.addstr(0, game.screen_width - len(label), label)
@@ -236,9 +282,9 @@ def _draw_frame(stdscr: curses.window, game: Game, paused: bool, use_color: bool
         for y, x in display:
             stdscr.addstr(y + 1, x, '█', attr)
     if game.game_won:
-        draw_win_screen(stdscr, game)
+        draw_win_screen(stdscr, game, high_score, new_high)
     elif game.game_over:
-        draw_game_over(stdscr, game)
+        draw_game_over(stdscr, game, high_score, new_high)
     stdscr.refresh()
 
 
@@ -266,10 +312,13 @@ def run(stdscr: curses.window) -> None:
     curses.curs_set(False)
     if not _wait_for_resize(stdscr):
         return
-    draw_start_screen(stdscr)
+    high_score = _load_high_score()
+    draw_start_screen(stdscr, high_score)
     h, w = stdscr.getmaxyx()
     game = Game(h - 2, w - 1)
     paused = False
+    new_high = False
+    recorded = False
     prev = time.monotonic() - TICK_BASE
     while True:
         delta = _tick_interval(game.score)
@@ -284,6 +333,8 @@ def run(stdscr: curses.window) -> None:
             h, w = stdscr.getmaxyx()
             game = Game(h - 2, w - 1)
             paused = False
+            new_high = False
+            recorded = False
             prev = time.monotonic() - delta
         elif ch == ord('p') and not game.game_over:
             paused = not paused
@@ -293,6 +344,8 @@ def run(stdscr: curses.window) -> None:
             h, w = stdscr.getmaxyx()
             game = Game(h - 2, w - 1)
             paused = False
+            new_high = False
+            recorded = False
             prev = time.monotonic() - delta
         if not game.game_over and not paused:
             if game.handle_input(ch):
@@ -300,9 +353,15 @@ def run(stdscr: curses.window) -> None:
         current = time.monotonic()
         if current - prev >= delta:
             prev = current
-            _draw_frame(stdscr, game, paused, use_color)
+            _draw_frame(stdscr, game, paused, high_score, new_high, use_color)
             if not paused:
                 game.update()
+                if game.game_over and not recorded:
+                    recorded = True
+                    if game.score > high_score:
+                        high_score = game.score
+                        new_high = True
+                        _save_high_score(high_score)
 
 
 def _get_version() -> str:

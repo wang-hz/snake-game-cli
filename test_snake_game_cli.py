@@ -3,13 +3,16 @@ from collections import deque
 
 import pytest
 
+import snake_game_cli
 from snake_game_cli import (
     TICK_ACCEL,
     TICK_BASE,
     TICK_MIN,
     Direction,
     Game,
+    _load_high_score,
     _normalize_key,
+    _save_high_score,
     _tick_interval,
 )
 
@@ -194,6 +197,43 @@ def test_update_noop_after_game_over():
     before = list(game.snake_body)
     game.update()
     assert list(game.snake_body) == before
+
+
+# --- high score persistence -------------------------------------------------
+
+
+@pytest.fixture
+def high_score_file(tmp_path, monkeypatch):
+    path = tmp_path / 'snake-game-cli' / 'highscore'
+    monkeypatch.setattr(snake_game_cli, '_high_score_path', lambda: path)
+    return path
+
+
+def test_save_then_load_roundtrip(high_score_file):
+    _save_high_score(42)
+    assert _load_high_score() == 42
+
+
+def test_save_creates_parent_dir(high_score_file):
+    assert not high_score_file.parent.exists()
+    _save_high_score(7)
+    assert high_score_file.exists()
+
+
+def test_load_missing_returns_zero(high_score_file):
+    assert _load_high_score() == 0
+
+
+def test_load_invalid_returns_zero(high_score_file):
+    high_score_file.parent.mkdir(parents=True)
+    high_score_file.write_text('not a number')
+    assert _load_high_score() == 0
+
+
+def test_load_negative_clamped_to_zero(high_score_file):
+    high_score_file.parent.mkdir(parents=True)
+    high_score_file.write_text('-5')
+    assert _load_high_score() == 0
 
 
 # --- get_displays -----------------------------------------------------------
