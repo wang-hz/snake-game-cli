@@ -56,10 +56,9 @@ class Game:
         self.next_direction: Direction | None = None
         self.score = 0
         self.game_won = False
-        self._available: set[_Pos] = (
-            {(y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)}
-            - self.snake_body_set
-        )
+        self._available: set[_Pos] = {
+            (y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)
+        } - self.snake_body_set
         self.food: _Pos | None = self._pick_food()
         self._border_display = self._compute_border()
 
@@ -132,7 +131,9 @@ class Game:
 
     def get_displays(self) -> list[list[_Pos]]:
         head = self._to_screen_cells(*self.snake_body[0])
-        body = [cell for gy, gx in list(self.snake_body)[1:] for cell in self._to_screen_cells(gy, gx)]
+        body = [
+            cell for gy, gx in list(self.snake_body)[1:] for cell in self._to_screen_cells(gy, gx)
+        ]
         food = self._to_screen_cells(*self.food) if self.food else []
         return [self._border_display, body, food, head]
 
@@ -181,16 +182,16 @@ def draw_centered_box(stdscr: curses.window, lines: list[str]) -> None:
 
 def draw_start_screen(stdscr: curses.window) -> None:
     lines = [
-        "SNAKE  GAME",
-        "",
-        "↑ / W    Move Up",
-        "↓ / S    Move Down",
-        "← / A    Move Left",
-        "→ / D    Move Right",
-        "P        Pause / Resume",
-        "Q        Quit",
-        "",
-        "Press any key to start",
+        'SNAKE  GAME',
+        '',
+        '↑ / W    Move Up',
+        '↓ / S    Move Down',
+        '← / A    Move Left',
+        '→ / D    Move Right',
+        'P        Pause / Resume',
+        'Q        Quit',
+        '',
+        'Press any key to start',
     ]
     stdscr.erase()
     draw_centered_box(stdscr, lines)
@@ -200,22 +201,22 @@ def draw_start_screen(stdscr: curses.window) -> None:
 
 def draw_win_screen(stdscr: curses.window, game: Game) -> None:
     lines = [
-        "YOU  WIN!",
-        f"Score: {game.score}",
-        "",
-        "[R] Play Again",
-        "[Q] Quit",
+        'YOU  WIN!',
+        f'Score: {game.score}',
+        '',
+        '[R] Play Again',
+        '[Q] Quit',
     ]
     draw_centered_box(stdscr, lines)
 
 
 def draw_game_over(stdscr: curses.window, game: Game) -> None:
     lines = [
-        "GAME  OVER",
-        f"Score: {game.score}",
-        "",
-        "[R] Restart",
-        "[Q] Quit",
+        'GAME  OVER',
+        f'Score: {game.score}',
+        '',
+        '[R] Restart',
+        '[Q] Quit',
     ]
     draw_centered_box(stdscr, lines)
 

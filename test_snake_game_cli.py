@@ -23,14 +23,14 @@ def make_game() -> Game:
 
 
 @pytest.mark.parametrize(
-    "ch, expected",
+    'ch, expected',
     [
-        (ord("A"), ord("a")),
-        (ord("Z"), ord("z")),
-        (ord("W"), ord("w")),
-        (ord("a"), ord("a")),  # lowercase unchanged
-        (ord("z"), ord("z")),
-        (ord("5"), ord("5")),  # non-letter unchanged
+        (ord('A'), ord('a')),
+        (ord('Z'), ord('z')),
+        (ord('W'), ord('w')),
+        (ord('a'), ord('a')),  # lowercase unchanged
+        (ord('z'), ord('z')),
+        (ord('5'), ord('5')),  # non-letter unchanged
         (curses.KEY_UP, curses.KEY_UP),  # special keys (> 'Z') unchanged
     ],
 )
@@ -77,12 +77,12 @@ def test_initial_state():
 # --- is_border --------------------------------------------------------------
 
 
-@pytest.mark.parametrize("pos", [(0, 5), (9, 5), (5, 0), (5, 9), (0, 0)])
+@pytest.mark.parametrize('pos', [(0, 5), (9, 5), (5, 0), (5, 9), (0, 0)])
 def test_is_border_true(pos):
     assert make_game().is_border(*pos)
 
 
-@pytest.mark.parametrize("pos", [(1, 1), (5, 5), (8, 8)])
+@pytest.mark.parametrize('pos', [(1, 1), (5, 5), (8, 8)])
 def test_is_border_false(pos):
     assert not make_game().is_border(*pos)
 
@@ -106,19 +106,19 @@ def test_handle_input_sets_next_direction():
 
 def test_handle_input_accepts_uppercase_wasd():
     game = make_game()
-    assert game.handle_input(ord("A")) is True
+    assert game.handle_input(ord('A')) is True
     assert game.next_direction == Direction.LEFT
 
 
 def test_handle_input_rejects_reverse():
     game = make_game()  # direction UP
-    assert game.handle_input(ord("s")) is False  # DOWN is opposite of UP
+    assert game.handle_input(ord('s')) is False  # DOWN is opposite of UP
     assert game.next_direction is None
 
 
 def test_handle_input_ignores_unrelated_key():
     game = make_game()
-    assert game.handle_input(ord("x")) is False
+    assert game.handle_input(ord('x')) is False
     assert game.next_direction is None
 
 
