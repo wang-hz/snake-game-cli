@@ -379,12 +379,16 @@ def run(stdscr: curses.window, difficulty_index: int = DEFAULT_DIFFICULTY_INDEX)
         if ch == ord('q'):
             break
         elif ch == ord('r') and game.game_over:
+            selected = draw_start_screen(stdscr, high_score, selected)
+            if selected is None:
+                break
+            difficulty = DIFFICULTIES[selected]
             h, w = stdscr.getmaxyx()
             game = Game(h - 2, w - 1)
             paused = False
             new_high = False
             recorded = False
-            prev = time.monotonic() - delta
+            prev = time.monotonic() - difficulty.tick_base
         elif ch == ord('p') and not game.game_over:
             paused = not paused
         elif ch == curses.KEY_RESIZE:

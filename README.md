@@ -35,6 +35,7 @@ On the start screen, `←` / `→` change the difficulty and `Enter` starts the 
 ## Features
 
 - Three difficulty presets (easy / normal / hard), selectable via `-d` or on the start screen
+- Restarting after game over returns to the difficulty selector, so you can switch presets between runs
 - Snake speeds up as your score increases
 - High score persists across sessions
 - Pressing a direction key triggers an immediate move
