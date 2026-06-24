@@ -106,16 +106,18 @@ class Game:
         if self.is_border(y, x) or (y, x) in self.snake_body_set:
             self.game_over = True
             return
-        if (y, x) == self.food:
+        ate = (y, x) == self.food
+        self.snake_body.appendleft((y, x))
+        self.snake_body_set.add((y, x))
+        self._available.discard((y, x))
+        if ate:
             self.snake_length += 1
             self.score += 1
+            # Pick after discarding the new head so food never spawns under it.
             self.food = self._pick_food()
             if self.food is None:
                 self.game_won = True
                 self.game_over = True
-        self.snake_body.appendleft((y, x))
-        self.snake_body_set.add((y, x))
-        self._available.discard((y, x))
         if self.snake_length < len(self.snake_body):
             removed = self.snake_body.pop()
             self.snake_body_set.discard(removed)
