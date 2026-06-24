@@ -8,7 +8,7 @@
   <text x="374" y="32" text-anchor="middle"
         font-family="monospace" font-size="13" fill="#666666">snake-game-cli</text>
   <rect x="14" y="50" width="720" height="450" fill="#0c0c0c"/>
-  <text x="34" y="64" font-family="monospace" font-size="14" fill="#e0e0e0"> Score: 10 </text>
+  <text x="34" y="64" font-family="monospace" font-size="14" fill="#e0e0e0"> Score: 10   High: 10 </text>
   <rect x="14" y="68" width="720" height="18" fill="#c0c0c0"/>
   <rect x="14" y="482" width="720" height="18" fill="#c0c0c0"/>
   <rect x="14" y="86" width="20" height="396" fill="#c0c0c0"/>
