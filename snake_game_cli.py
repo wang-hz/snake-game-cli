@@ -403,7 +403,8 @@ def run(stdscr: curses.window, difficulty_index: int = DEFAULT_DIFFICULTY_INDEX)
                 break
             h, w = stdscr.getmaxyx()
             game = Game(h - 2, w - 1)
-            paused = False
+            # Keep the pause state: resizing rebuilds the board but should not
+            # silently resume a game the player had paused.
             new_high = False
             recorded = False
             prev = time.monotonic() - delta
