@@ -40,3 +40,26 @@ On the start screen, `←` / `→` change the difficulty and `Enter` starts the 
 - High score persists across sessions
 - Pressing a direction key triggers an immediate move
 - Terminal resize is handled gracefully
+
+## Development
+
+Checks run automatically before every `git push` via a tracked `pre-push` hook.
+Enable it once after cloning:
+
+```shell
+git config core.hooksPath .githooks
+```
+
+The hook runs the same checks on your local Python and blocks the push if any fail:
+
+```shell
+ruff check .
+ruff format --check .
+mypy snake_game_cli.py
+pytest
+```
+
+Bypass it in an emergency with `git push --no-verify`.
+
+On release (pushing a `v*` tag), GitHub Actions runs the test suite across Python
+3.10–3.13 and only publishes to PyPI if every version passes.

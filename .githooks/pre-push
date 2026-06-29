@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# pre-push hook: run the checks CI used to run, blocking the push on failure.
+#
+# Enable once per clone with:
+#     git config core.hooksPath .githooks
+#
+# In an emergency you can bypass it with:
+#     git push --no-verify
+set -u
+
+status=0
+
+run() {
+    echo "==> $*"
+    if ! "$@"; then
+        echo "FAILED: $*" >&2
+        status=1
+    fi
+}
+
+# The matrix run across Python 3.10-3.13 stays out of scope for a local hook;
+# pytest here runs against whatever Python is on PATH.
+for tool in ruff mypy pytest; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "pre-push: '$tool' not found. Install dev tools with:" >&2
+        echo "    pip install ruff mypy pytest" >&2
+        exit 1
+    fi
+done
+
+run ruff check .
+run ruff format --check .
+run mypy snake_game_cli.py
+run pytest -q
+
+if [ "$status" -ne 0 ]; then
+    echo >&2
+    echo "pre-push: checks failed, push aborted (override with 'git push --no-verify')." >&2
+fi
+
+exit "$status"

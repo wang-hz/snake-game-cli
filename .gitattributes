@@ -1,0 +1,2 @@
+# Git runs this hook directly; keep it LF so the shebang works on Unix/WSL.
+.githooks/pre-push text eol=lf
