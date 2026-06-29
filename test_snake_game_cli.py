@@ -16,6 +16,7 @@ from snake_game_cli import (
     Game,
     _load_high_score,
     _normalize_key,
+    _RandomSet,
     _save_high_score,
     _tick_interval,
 )
@@ -226,7 +227,7 @@ def test_update_eats_food():
 def test_update_win_when_board_filled():
     game = make_game()
     game.food = (4, 5)
-    game._available = set()  # nothing left to place new food after eating
+    game._available.clear()  # nothing left to place new food after eating
     game.update()
     assert game.game_won
     assert game.game_over
@@ -291,3 +292,48 @@ def test_get_displays_layers():
     # Food occupies two screen cells.
     assert len(food) == 2
     assert len(border) > 0
+
+
+# --- _RandomSet -------------------------------------------------------------
+
+
+def test_random_set_add_is_idempotent():
+    rs = _RandomSet([(1, 1)])
+    rs.add((1, 1))
+    assert len(rs) == 1
+    assert (1, 1) in rs
+
+
+def test_random_set_discard_preserves_membership():
+    rs = _RandomSet([(0, 0), (1, 1), (2, 2), (3, 3)])
+    rs.discard((1, 1))  # middle element triggers swap-with-last
+    assert (1, 1) not in rs
+    assert len(rs) == 3
+    assert {(0, 0), (2, 2), (3, 3)} == {rs.choice() for _ in range(100)}
+
+
+def test_random_set_discard_missing_is_noop():
+    rs = _RandomSet([(0, 0)])
+    rs.discard((9, 9))
+    assert len(rs) == 1
+
+
+def test_random_set_discard_last_element():
+    rs = _RandomSet([(0, 0), (1, 1)])
+    rs.discard((1, 1))  # the element that is already last
+    assert (1, 1) not in rs
+    assert (0, 0) in rs
+    assert len(rs) == 1
+
+
+def test_random_set_choice_only_returns_members():
+    rs = _RandomSet([(0, 0), (1, 1)])
+    assert all(rs.choice() in {(0, 0), (1, 1)} for _ in range(100))
+
+
+def test_random_set_choice_empty_returns_none():
+    assert _RandomSet().choice() is None
+    rs = _RandomSet([(0, 0)])
+    rs.clear()
+    assert rs.choice() is None
+    assert len(rs) == 0

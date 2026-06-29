@@ -5,6 +5,7 @@ import random
 import sys
 import time
 from collections import deque
+from collections.abc import Iterable
 from curses import wrapper
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -64,6 +65,49 @@ _DIRECTION_DELTA: dict[Direction, _Pos] = {
 }
 
 
+class _RandomSet:
+    """A set of cells supporting O(1) add, discard, and uniform random choice.
+
+    Backed by a list (for index-based random choice) plus a position->index
+    map (for O(1) discard via swap-with-last), so picking food no longer
+    copies the whole collection each tick the way ``random.choice(tuple(...))``
+    did.
+    """
+
+    def __init__(self, items: Iterable[_Pos] = ()) -> None:
+        self._items: list[_Pos] = []
+        self._index: dict[_Pos, int] = {}
+        for item in items:
+            self.add(item)
+
+    def add(self, item: _Pos) -> None:
+        if item not in self._index:
+            self._index[item] = len(self._items)
+            self._items.append(item)
+
+    def discard(self, item: _Pos) -> None:
+        idx = self._index.pop(item, None)
+        if idx is None:
+            return
+        last = self._items.pop()
+        if idx < len(self._items):  # the removed item was not already last
+            self._items[idx] = last
+            self._index[last] = idx
+
+    def clear(self) -> None:
+        self._items.clear()
+        self._index.clear()
+
+    def choice(self) -> _Pos | None:
+        return random.choice(self._items) if self._items else None
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def __contains__(self, item: _Pos) -> bool:
+        return item in self._index
+
+
 class Game:
     def __init__(self, screen_height: int, screen_width: int) -> None:
         self.game_over = False
@@ -81,9 +125,12 @@ class Game:
         self.next_direction: Direction | None = None
         self.score = 0
         self.game_won = False
-        self._available: set[_Pos] = {
-            (y, x) for y in range(1, self.map_height - 1) for x in range(1, self.map_width - 1)
-        } - self.snake_body_set
+        self._available = _RandomSet(
+            (y, x)
+            for y in range(1, self.map_height - 1)
+            for x in range(1, self.map_width - 1)
+            if (y, x) not in self.snake_body_set
+        )
         self.food: _Pos | None = self._pick_food()
         self._border_display = self._compute_border()
 
@@ -154,7 +201,7 @@ class Game:
         return y in (0, self.map_height - 1) or x in (0, self.map_width - 1)
 
     def _pick_food(self) -> _Pos | None:
-        return random.choice(tuple(self._available)) if self._available else None
+        return self._available.choice()
 
     def get_displays(self) -> list[list[_Pos]]:
         head = self._to_screen_cells(*self.snake_body[0])
