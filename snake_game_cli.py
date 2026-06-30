@@ -42,6 +42,21 @@ DIFFICULTIES: list[Difficulty] = [
 DIFFICULTY_NAMES: list[str] = [d.label.lower() for d in DIFFICULTIES]
 DEFAULT_DIFFICULTY_INDEX = DIFFICULTY_NAMES.index('normal')
 
+# Single source of truth for the in-game controls. The start screen and the
+# --help output both render from this; a test keeps the README table in sync.
+CONTROLS: list[tuple[str, str]] = [
+    ('↑ / W', 'Move Up'),
+    ('↓ / S', 'Move Down'),
+    ('← / A', 'Move Left'),
+    ('→ / D', 'Move Right'),
+    ('P', 'Pause / Resume'),
+    ('Q', 'Quit'),
+]
+
+
+def _control_rows(indent: str = '') -> list[str]:
+    return [f'{indent}{keys:<9}{action}' for keys, action in CONTROLS]
+
 
 def _normalize_key(ch: int) -> int:
     """Fold ASCII uppercase letters to lowercase so all key checks use one case."""
@@ -288,15 +303,9 @@ def _start_screen_lines(high_score: int, difficulty_index: int) -> list[str]:
     if high_score > 0:
         lines += [f'High Score: {high_score}', '']
     label = DIFFICULTIES[difficulty_index].label
+    lines += [f'Difficulty:  ◄ {label} ►', '']
+    lines += _control_rows()
     lines += [
-        f'Difficulty:  ◄ {label} ►',
-        '',
-        '↑ / W    Move Up',
-        '↓ / S    Move Down',
-        '← / A    Move Left',
-        '→ / D    Move Right',
-        'P        Pause / Resume',
-        'Q        Quit',
         '',
         '← / →    Change difficulty',
         'Enter    Start game',
@@ -480,7 +489,12 @@ def _get_version() -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog='play-snake', description='Play snake in your terminal.')
+    parser = argparse.ArgumentParser(
+        prog='play-snake',
+        description='Play snake in your terminal.',
+        epilog='controls:\n' + '\n'.join(_control_rows(indent='  ')),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument('--version', action='version', version=f'%(prog)s {_get_version()}')
     parser.add_argument(
         '-d',

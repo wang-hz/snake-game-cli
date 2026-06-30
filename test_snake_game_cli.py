@@ -1,10 +1,12 @@
 import curses
 from collections import deque
+from pathlib import Path
 
 import pytest
 
 import snake_game_cli
 from snake_game_cli import (
+    CONTROLS,
     DEFAULT_DIFFICULTY_INDEX,
     DIFFICULTIES,
     DIFFICULTY_NAMES,
@@ -337,3 +339,33 @@ def test_random_set_choice_empty_returns_none():
     rs.clear()
     assert rs.choice() is None
     assert len(rs) == 0
+
+
+# --- controls in sync with README -------------------------------------------
+
+
+def _normalize(keys: str, action: str) -> tuple[str, str]:
+    return (keys.replace('`', '').replace(' ', ''), action.replace(' ', '').lower())
+
+
+def _readme_controls() -> set[tuple[str, str]]:
+    """Parse the | Key | Action | table from README.md into normalized pairs."""
+    text = (Path(__file__).parent / 'README.md').read_text(encoding='utf-8')
+    rows = set()
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith('|'):
+            continue
+        cells = [c.strip() for c in line.strip('|').split('|')]
+        if len(cells) != 2:
+            continue
+        key, action = cells
+        if key == 'Key' or set(key) <= set('-: '):  # header / separator row
+            continue
+        rows.add(_normalize(key, action))
+    return rows
+
+
+def test_readme_controls_match_source():
+    expected = {_normalize(keys, action) for keys, action in CONTROLS}
+    assert _readme_controls() == expected
